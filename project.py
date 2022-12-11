@@ -55,8 +55,6 @@ def initialize_docx(filename):
     return Document(filename)
 
 def add_zero_width_space(document):
-    inline_shapes = document.inline_shapes
-    print(inline_shapes, type(inline_shapes))
 
     for p in document.paragraphs:
         for run in p.runs:
