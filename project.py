@@ -3,58 +3,80 @@ import sys
 from docx import Document
 
 def main():
-    """ Get available documents from current directory """
-    available_docxs = get_docx()
+    available_filenames = get_available_filenames()
+    if len(available_filenames) == 0:
+        print("There is no document in this directory.")
+        return 
 
-    print("\nHere are available documents in your current directory - ", end='\n\n')
+    selected_filename = select_filename(available_filenames)
 
-    for index, docx in enumerate(available_docxs):
-        if docx == available_docxs[-1]:                     # if it's last element in the list
-            print(f"\t{index+1} - {docx}")
-            print(f"\t{0} - Exit the program", end='\n\n')
-        else:
-            print(f"\t{index+1} - {docx}")
+    if selected_filename:
+        process_docx(selected_filename)
 
-    print(f"Enter a number (1 - {len(available_docxs)}) to select the document you want to modify: ", end='')
+    print("Have a nice day!")
 
-    """ Get user selection of document """
-    selected_doc = get_selection(available_docxs)
-
-    document = Document(selected_doc)
-
-    for p in document.paragraphs:
-        for run in p.runs:
-            para_list = list(map(str, run.text))               # Convert run.text to list
-            for i in range(len(para_list)-2):
-                if manager(para_list[i], para_list[i+1], para_list[i+2]):
-                    para_list[i] = para_list[i]+u'\u200B'
-            run.text = ''.join(map(str, para_list))
-
-    document.save(f"{get_only_filename(selected_doc)}_ZWS.docx")
-
-
-""" ******* MAIN ENDS HERE ******* """
-
-def get_docx():
+def get_available_filenames():
     docxs = list()
     cur_dir_list = os.listdir()             # get all lists in current directory
     for docx in cur_dir_list:               # filter out docx files
         if docx.lower().endswith('.docx'):
             docxs.append(docx)
 
-    if not docxs:
-        sys.exit("There is no document in this directory.")
-    else:
-        docxs = sorted(docxs)
-        return docxs
+    return sorted(docxs);
+
+def select_filename(docxs):
+    print("\nHere are available documents in your current directory - ", end='\n\n')
+    while True:
+        for index, docx in enumerate(docxs):
+            print(f"\t{index+1} - {docx}")
+        print(f"\t{0} - Exit the program", end='\n\n')
+
+        selected = int(input())
+        if selected == 0:
+            return None
+        if len(docxs) >= selected: 
+            return docxs[selected]
+
+        print(f"Please enter a valid number (1 - {len(docxs)}) or exit code (0): ", end='')
+
+def process_docx(filename):
+    document = initialize_docx(filename)
+    updatedDocument = add_zero_width_space(document)
+    save_document(updatedDocument, filename)
+
+def initialize_docx(filename):
+    return Document(filename)
+
+def add_zero_width_space(document):
+    for p in document.paragraphs:
+        for run in p.runs:
+            para_list = list(map(str, run.text))               # Convert run.text to list
+            for i in range(len(para_list)-2):
+                if should_add_zero_width_space(para_list[i], para_list[i+1], para_list[i+2]):
+                    para_list[i] = para_list[i]+u'\u200B'
+            run.text = ''.join(map(str, para_list))
+
+    return document
+
+def save_document(document, filename):
+    document.save(f"{get_only_filename(filename)}_ZWS.docx")
 
 """ return selected document as a string """
 def get_selection(docxs):
+    for index, docx in enumerate(docxs):
+        if docx == docxs[-1]:                     # if it's last element in the list
+            print(f"\t{index+1} - {docx}")
+            print(f"\t{0} - Exit the program", end='\n\n')
+        else:
+            print(f"\t{index+1} - {docx}")
+
+    print(f"Enter a number (1 - {len(docxs)}) to select the document you want to modify: ", end='')
+
     while True:
         try:
             select = int(input())
             if select == 0:
-                sys.exit("Have a nice day!")
+                return None
             elif select in range(1, len(docxs)+1):
                 return docxs[select-1]
             else:
@@ -65,13 +87,15 @@ def get_selection(docxs):
 def get_only_filename(docx):
     return docx.replace(".docx", "")
 
-def manager(first, second, third):
-    first = get_type(first)
-    second = get_type(second)
-    third = get_type(third)
-    if ((first == "custom_standalones")
-        or (second == "custom_standalones" and (not third == "Punctuation"))):
-        return True
+def should_add_zero_width_space(first, second, third):
+    first = get_constant_type(first)
+    second = get_constant_type(second)
+    third = get_constant_type(third)
+    
+    if ((first == Constants.CUSTOM_STANDALONES_KEY) 
+        or (second == Constants.CUSTOM_STANDALONES_KEY 
+        and (not third == "Punctuation"))):
+                return True
     elif ((first == "Consonants" or first == "Independent_vowels")
         and (second == "Consonants")
         and (not third == "Virama_and_killer")):
@@ -132,27 +156,32 @@ def manager(first, second, third):
         and (not second == "Consonants")):
         return True
 
-def get_type(char):
-    if char in constants.Consonants:
-        return "Consonants"
-    elif char in constants.Independent_vowels:
-        return "Independent_vowels"
-    elif char in constants.Dependent_vowel_signs:
-        return "Dependent_vowel_signs"
-    elif char in constants.Various_signs:
-        return "Various_signs"
-    elif char in constants.Various_SIGNS:
-        return "Various_SIGNS"
-    elif char == constants.Virama_and_killer[1]:  # Virama_and_killer[0] is exception character
-        return "Virama_and_killer"
-    elif char in constants.Dependent_consonant_signs:
-        return "Dependent_consonant_signs"
-    elif char in constants.Punctuation:
-        return "Punctuation"
-    elif char in constants.custom_standalones:
-        return "custom_standalones"
+    return False
 
-class constants:
+def get_constant_type(char):
+    constant_type = None
+    if char in Constants.Consonants:
+        constant_type = "Consonants"
+    elif char in Constants.Independent_vowels:
+        return "Independent_vowels"
+    elif char in Constants.Dependent_vowel_signs:
+        return "Dependent_vowel_signs"
+    elif char in Constants.Various_signs:
+        return "Various_signs"
+    elif char in Constants.Various_SIGNS:
+        return "Various_SIGNS"
+    elif char == Constants.Virama_and_killer[1]:  # Virama_and_killer[0] is exception character
+        return "Virama_and_killer"
+    elif char in Constants.Dependent_consonant_signs:
+        return "Dependent_consonant_signs"
+    elif char in Constants.Punctuation:
+        return "Punctuation"
+    elif char in Constants.CUSTOM_STANDALONES_VALUES:
+        return Constants.CUSTOM_STANDALONES_KEY
+
+    return constant_type
+
+class Constants:
     # https://unicode-table.com/en/blocks/myanmar/
 
     Consonants =   ['က','ခ','ဂ','ဃ','င','စ','ဆ','ဇ','ဈ','ဉ','ည',
@@ -177,7 +206,8 @@ class constants:
 
     Various_SIGNS = ['၎']
 
-    custom_standalones = ['ဤ','ဪ','၌','၍','၏','ဣ','ဿ']
+    CUSTOM_STANDALONES_KEY = 'custom_standalones'
+    CUSTOM_STANDALONES_VALUES = ['ဤ','ဪ','၌','၍','၏','ဣ','ဿ']
 
 if __name__ == "__main__":
     main()
