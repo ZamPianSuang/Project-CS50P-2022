@@ -1,6 +1,6 @@
 
 # Myanmar Unicode Justification Smoother for Word
-### Video Demo: <www.youtube.com>
+### Video Demo: <https://youtu.be/2m7jHdS1WvQ>
 **Description:**
 ### This project is Myanmar Unicode Justification Smoother for Microsoft Word
 #### It has originally 4 files (but I added a few example files for demonstration purpose),
