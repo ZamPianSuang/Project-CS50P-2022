@@ -6,38 +6,45 @@ def main():
     available_filenames = get_available_filenames()
     if len(available_filenames) == 0:
         print("There is no document in this directory.")
-        return 
+        return
 
     selected_filename = select_filename(available_filenames)
 
     if selected_filename:
-        process_docx(selected_filename)
+        process_docx(f'{os.getcwd()}/input/{selected_filename}')
+        print("Your modified document has been generated in output folder of current directory.")
 
     print("Have a nice day!")
 
+""" ******* MAIN ENDS HERE ******* """
+
 def get_available_filenames():
     docxs = list()
-    cur_dir_list = os.listdir()             # get all lists in current directory
+    cur_dir_list = os.listdir(f'{os.getcwd()}/input')       # get all lists in input folder of current directory
     for docx in cur_dir_list:               # filter out docx files
         if docx.lower().endswith('.docx'):
             docxs.append(docx)
 
-    return sorted(docxs);
+    return sorted(docxs)
 
 def select_filename(docxs):
-    print("\nHere are available documents in your current directory - ", end='\n\n')
+    print("Here are available documents in your current directory - ", end='\n\n')
+    for index, docx in enumerate(docxs):
+        print(f"\t{index+1} - {docx}")
+    print(f"\t{0} - Exit the program", end='\n\n')
+    print(f"Enter a number (1 - {len(docxs)}) to select the document you want to modify: ", end='')
     while True:
-        for index, docx in enumerate(docxs):
-            print(f"\t{index+1} - {docx}")
-        print(f"\t{0} - Exit the program", end='\n\n')
+        try:
+            selected = int(input().strip())
+            if selected == 0:
+                return None
+            if len(docxs) >= selected:
+                return docxs[selected-1]        # return selected filename as a string
+            else:
+                raise ValueError
 
-        selected = int(input())
-        if selected == 0:
-            return None
-        if len(docxs) >= selected: 
-            return docxs[selected]
-
-        print(f"Please enter a valid number (1 - {len(docxs)}) or exit code (0): ", end='')
+        except ValueError:
+            print(f"Please enter a valid number (1 - {len(docxs)}) or exit code (0): ", end='')
 
 def process_docx(filename):
     document = initialize_docx(filename)
@@ -48,6 +55,9 @@ def initialize_docx(filename):
     return Document(filename)
 
 def add_zero_width_space(document):
+    inline_shapes = document.inline_shapes
+    print(inline_shapes, type(inline_shapes))
+
     for p in document.paragraphs:
         for run in p.runs:
             para_list = list(map(str, run.text))               # Convert run.text to list
@@ -59,152 +69,147 @@ def add_zero_width_space(document):
     return document
 
 def save_document(document, filename):
-    document.save(f"{get_only_filename(filename)}_ZWS.docx")
+    filename = f"{get_output_directory_and_filename(filename)}_ZWS.docx"
+    document.save(filename)
 
-""" return selected document as a string """
-def get_selection(docxs):
-    for index, docx in enumerate(docxs):
-        if docx == docxs[-1]:                     # if it's last element in the list
-            print(f"\t{index+1} - {docx}")
-            print(f"\t{0} - Exit the program", end='\n\n')
-        else:
-            print(f"\t{index+1} - {docx}")
-
-    print(f"Enter a number (1 - {len(docxs)}) to select the document you want to modify: ", end='')
-
-    while True:
-        try:
-            select = int(input())
-            if select == 0:
-                return None
-            elif select in range(1, len(docxs)+1):
-                return docxs[select-1]
-            else:
-                raise ValueError
-        except ValueError:
-            print(f"Please enter a valid number (1 - {len(docxs)}) or exit code (0): ", end='')
-
-def get_only_filename(docx):
-    return docx.replace(".docx", "")
+def get_output_directory_and_filename(docx):
+    return docx.replace("input", 'output').replace(".docx", "")
 
 def should_add_zero_width_space(first, second, third):
     first = get_constant_type(first)
     second = get_constant_type(second)
     third = get_constant_type(third)
-    
-    if ((first == Constants.CUSTOM_STANDALONES_KEY) 
-        or (second == Constants.CUSTOM_STANDALONES_KEY 
-        and (not third == "Punctuation"))):
-                return True
-    elif ((first == "Consonants" or first == "Independent_vowels")
-        and (second == "Consonants")
-        and (not third == "Virama_and_killer")):
-        return True
-    elif ((first == "Consonants")
-        and (second == "Independent_vowels")
-        and (not third == "Consonants")):
-        return True
-    elif ((first == "Various_signs")
-        and (second == "Consonants")
-        and (third == "Dependent_vowel_signs")):
-        return True
-    elif ((first == "Dependent_vowel_signs")
-        and (second == "Consonants")
-        and (third == "Dependent_vowel_signs" or third == "Consonants" or third == "Various_signs")):
-        return True
-    elif ((first == "Virama_and_killer")
-        and (second == "Consonants")
-        and (third == "Dependent_vowel_signs" or third == "Dependent_consonant_signs")):
-        return True
-    elif ((first == "Virama_and_killer")
-        and (second == "Consonants")
-        and (third == "Various_signs")):
-        return True
-    elif ((first == "Various_signs")
-        and (second == "Consonants")
-        and (third == "Dependent_consonant_signs")):
-        return True
-    elif ((first == "Virama_and_killer")
-        and (second == "Consonants" or second == "Independent_vowels")
-        and (third == "Consonants")):
-        return True
-    elif ((first == "Dependent_vowel_signs")
-        and (second == "Consonants")
-        and (third == "Dependent_consonant_signs")):
-        return True
-    elif ((first == "Dependent_vowel_signs")
-        and (second == "Independent_vowels")
-        and (third == "Consonants")):
-        return True
-    elif ((first == "Various_signs" or first == "Dependent_consonant_signs")
-        and (second == "Consonants")
-        and (third == "Consonants")):
-        return True
-    elif ((first == "Dependent_vowel_signs")
-        and (second == "Consonants")
-        and (third == "Consonants" or third == "Independent_vowels")):
-        return True
-    elif ((first == "Dependent_consonant_signs")
-        and (second == "Consonants")
-        and (third == "Dependent_vowel_signs")):
-        return True
-    elif ((first == "Various_signs")
-        and (second == "Independent_vowels")
-        and (third == "Consonants" or third == "Dependent_vowel_signs")):
-        return True
-    elif ((first == "Various_SIGNS")
-        and (not second == "Consonants")):
-        return True
 
-    return False
+    should_add = False
+
+    if ((first == Constants.CUSTOM_STANDALONES_KEY) or
+        (second == Constants.CUSTOM_STANDALONES_KEY
+        and (not third == Constants.PUNCTUATION_KEY))):
+        should_add = True
+    elif ((first == Constants.CONSONANTS_KEY or
+        first == Constants.INDEPENDENT_VOWELS_KEY)
+        and (second == Constants.CONSONANTS_KEY)
+        and (not third == Constants.VIRAMA_AND_KILLER_KEY)):
+        should_add = True
+    elif ((first == Constants.CONSONANTS_KEY)
+        and (second == Constants.INDEPENDENT_VOWELS_KEY)
+        and (not third == Constants.CONSONANTS_KEY)):
+        should_add = True
+    elif ((first == Constants.VARIOUS_SIGNS_KEY)
+        and (second == Constants.CONSONANTS_KEY)
+        and (third == Constants.DEPENDENT_VOWEL_SIGNS_KEY)):
+        should_add = True
+    elif ((first == Constants.DEPENDENT_VOWEL_SIGNS_KEY)
+        and (second == Constants.CONSONANTS_KEY)
+        and (third == Constants.DEPENDENT_VOWEL_SIGNS_KEY or
+        third == Constants.CONSONANTS_KEY or
+        third == Constants.VARIOUS_SIGNS_KEY)):
+        should_add = True
+    elif ((first == Constants.VIRAMA_AND_KILLER_KEY)
+        and (second == Constants.CONSONANTS_KEY)
+        and (third == Constants.DEPENDENT_VOWEL_SIGNS_KEY or
+        third == Constants.DEPENDENT_CONSONANT_SIGNS_KEY)):
+        should_add = True
+    elif ((first == Constants.VIRAMA_AND_KILLER_KEY)
+        and (second == Constants.CONSONANTS_KEY)
+        and (third == Constants.VARIOUS_SIGNS_KEY)):
+        should_add = True
+    elif ((first == Constants.VARIOUS_SIGNS_KEY)
+        and (second == Constants.CONSONANTS_KEY)
+        and (third == Constants.DEPENDENT_CONSONANT_SIGNS_KEY)):
+        should_add = True
+    elif ((first == Constants.VIRAMA_AND_KILLER_KEY)
+        and (second == Constants.CONSONANTS_KEY or
+        second == Constants.INDEPENDENT_VOWELS_KEY)
+        and (third == Constants.CONSONANTS_KEY)):
+        should_add = True
+    elif ((first == Constants.DEPENDENT_VOWEL_SIGNS_KEY)
+        and (second == Constants.CONSONANTS_KEY)
+        and (third == Constants.DEPENDENT_CONSONANT_SIGNS_KEY)):
+        should_add = True
+    elif ((first == Constants.DEPENDENT_VOWEL_SIGNS_KEY)
+        and (second == Constants.INDEPENDENT_VOWELS_KEY)
+        and (third == Constants.CONSONANTS_KEY)):
+        should_add = True
+    elif ((first == Constants.VARIOUS_SIGNS_KEY or
+        first == Constants.DEPENDENT_CONSONANT_SIGNS_KEY)
+        and (second == Constants.CONSONANTS_KEY)
+        and (third == Constants.CONSONANTS_KEY)):
+        should_add = True
+    elif ((first == Constants.DEPENDENT_VOWEL_SIGNS_KEY)
+        and (second == Constants.CONSONANTS_KEY)
+        and (third == Constants.CONSONANTS_KEY or
+        third == Constants.INDEPENDENT_VOWELS_KEY)):
+        should_add = True
+    elif ((first == Constants.DEPENDENT_CONSONANT_SIGNS_KEY)
+        and (second == Constants.CONSONANTS_KEY)
+        and (third == Constants.DEPENDENT_VOWEL_SIGNS_KEY)):
+        should_add = True
+    elif ((first == Constants.VARIOUS_SIGNS_KEY)
+        and (second == Constants.INDEPENDENT_VOWELS_KEY)
+        and (third == Constants.CONSONANTS_KEY or
+        third == Constants.DEPENDENT_VOWEL_SIGNS_KEY)):
+        should_add = True
+    elif ((first == Constants.VARIOUS_SIGN_KEY)
+        and (not second == Constants.CONSONANTS_KEY)):
+        should_add = True
+
+    return should_add
 
 def get_constant_type(char):
     constant_type = None
-    if char in Constants.Consonants:
-        constant_type = "Consonants"
-    elif char in Constants.Independent_vowels:
-        return "Independent_vowels"
-    elif char in Constants.Dependent_vowel_signs:
-        return "Dependent_vowel_signs"
-    elif char in Constants.Various_signs:
-        return "Various_signs"
-    elif char in Constants.Various_SIGNS:
-        return "Various_SIGNS"
-    elif char == Constants.Virama_and_killer[1]:  # Virama_and_killer[0] is exception character
-        return "Virama_and_killer"
-    elif char in Constants.Dependent_consonant_signs:
-        return "Dependent_consonant_signs"
-    elif char in Constants.Punctuation:
-        return "Punctuation"
+    if char in Constants.CONSONANTS_VALUES:
+        constant_type = Constants.CONSONANTS_KEY
+    elif char in Constants.INDEPENDENT_VOWELS_VALUES:
+        constant_type = Constants.INDEPENDENT_VOWELS_KEY
+    elif char in Constants.DEPENDENT_VOWEL_SIGNS_VALUES:
+        constant_type = Constants.DEPENDENT_VOWEL_SIGNS_KEY
+    elif char in Constants.VARIOUS_SIGNS_VALUES:
+        constant_type = Constants.VARIOUS_SIGNS_KEY
+    elif char in Constants.VARIOUS_SIGN_VALUES:
+        constant_type = Constants.VARIOUS_SIGN_KEY
+    elif char in Constants.VIRAMA_AND_KILLER_VALUES:
+        constant_type = Constants.VIRAMA_AND_KILLER_KEY
+    elif char in Constants.DEPENDENT_CONSONANT_SIGNS_VALUES:
+        constant_type = Constants.DEPENDENT_CONSONANT_SIGNS_KEY
+    elif char in Constants.PUNCTUATION_VALUES:
+        constant_type = Constants.PUNCTUATION_KEY
     elif char in Constants.CUSTOM_STANDALONES_VALUES:
-        return Constants.CUSTOM_STANDALONES_KEY
+        constant_type = Constants.CUSTOM_STANDALONES_KEY
 
     return constant_type
 
 class Constants:
     # https://unicode-table.com/en/blocks/myanmar/
 
-    Consonants =   ['က','ခ','ဂ','ဃ','င','စ','ဆ','ဇ','ဈ','ဉ','ည',
-                    'ဋ','ဌ','ဍ','ဎ','ဏ','တ','ထ','ဒ','ဓ','န','ပ',
-                    'ဖ','ဗ','ဘ','မ','ယ','ရ','လ','ဝ','သ','ဟ','ဠ']
+    CONSONANTS_KEY = 'Consonants'
+    CONSONANTS_VALUES = ['က','ခ','ဂ','ဃ','င','စ','ဆ','ဇ','ဈ','ဉ','ည',
+                        'ဋ','ဌ','ဍ','ဎ','ဏ','တ','ထ','ဒ','ဓ','န','ပ',
+                        'ဖ','ဗ','ဘ','မ','ယ','ရ','လ','ဝ','သ','ဟ','ဠ']
 
-    Independent_vowels = ['အ','ဢ','ဥ','ဦ','ဧ','ဨ','ဩ']
+    INDEPENDENT_VOWELS_KEY = 'Independent_vowels'
+    INDEPENDENT_VOWELS_VALUES = ['အ','ဢ','ဥ','ဦ','ဧ','ဨ','ဩ']
 
-    Dependent_vowel_signs = ['ါ','ာ','ိ','ီ','ု','ူ','ေ','ဲ','ဳ','ဴ','ဵ']
+    DEPENDENT_VOWEL_SIGNS_KEY = 'Dependent_vowel_signs'
+    DEPENDENT_VOWEL_SIGNS_VALUES = ['ါ','ာ','ိ','ီ','ု','ူ','ေ','ဲ','ဳ','ဴ','ဵ']
 
-    Various_signs = ['ံ','့','း']
+    VARIOUS_SIGNS_KEY = 'Various_signs'
+    VARIOUS_SIGNS_VALUES = ['ံ','့','း']
 
-    Virama_and_killer = ['္','်']
+    VIRAMA_AND_KILLER_KEY = 'Virama_and_killer'
+    VIRAMA_AND_KILLER_VALUES = ['်'] # ['္', '်'] # Virama_and_killer[0] is exception character
 
-    Dependent_consonant_signs = ['ျ','ြ','ွ','ှ']
+    DEPENDENT_CONSONANT_SIGNS_KEY = 'Dependent_consonant_signs'
+    DEPENDENT_CONSONANT_SIGNS_VALUES = ['ျ','ြ','ွ','ှ']
 
-    # Consonant = ['ဿ']
+    DIGITS_KEY = 'Digits'
+    DIGITS_VALUES = ['၀','၁','၂','၃','၄','၅','၆','၇','၈','၉']
 
-    Digits = ['၀','၁','၂','၃','၄','၅','၆','၇','၈','၉']
+    PUNCTUATION_KEY = 'Punctuation'
+    PUNCTUATION_VALUES = ['၊','။']
 
-    Punctuation = ['၊','။']
-
-    Various_SIGNS = ['၎']
+    VARIOUS_SIGN_KEY = 'Various_SIGN'
+    VARIOUS_SIGN_VALUES = ['၎']
 
     CUSTOM_STANDALONES_KEY = 'custom_standalones'
     CUSTOM_STANDALONES_VALUES = ['ဤ','ဪ','၌','၍','၏','ဣ','ဿ']

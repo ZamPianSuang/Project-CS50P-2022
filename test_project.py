@@ -1,26 +1,26 @@
 import pytest
-from project import get_only_filename, get_type, manager, get_selection
+from project import get_output_directory_and_filename, should_add_zero_width_space, get_constant_type, Constants
 
-def test_get_only_filename():
-    assert get_only_filename("example1.docx") == "example1"
-    assert get_only_filename("တမန်တော်.docx") == "တမန်တော်"
+def test_get_output_directory_and_filename():
+    assert get_output_directory_and_filename("/workspaces/103347165/project/input/example.docx") == "/workspaces/103347165/project/output/example"
+    assert get_output_directory_and_filename("/workspaces/103347165/project/input/တမန်တော်.docx") == "/workspaces/103347165/project/output/တမန်တော်"
 
-def test_manager():
-    assert manager('အ', 'က', 'ြ') == True
-    assert manager('အ', 'မ', 'ျ') == True
-    assert manager('း', 'မ', 'ျ') == True
+def test_should_add_zero_width_space():
+    assert should_add_zero_width_space('အ', 'က', 'ြ') == True
+    assert should_add_zero_width_space('အ', 'မ', 'ျ') == True
+    assert should_add_zero_width_space('း', 'မ', 'ျ') == True
 
-    assert manager('က', 'ြ', 'ေ') == None
-    assert manager('ာ', 'င', '်') == None
-    assert manager('မ', 'ျ', 'ိ') == None
+    assert should_add_zero_width_space('က', 'ြ', 'ေ') == False
+    assert should_add_zero_width_space('ာ', 'င', '်') == False
+    assert should_add_zero_width_space('မ', 'ျ', 'ိ') == False
 
-def test_get_type():
-    assert get_type('က') == "Consonants"
-    assert get_type('အ') == "Independent_vowels"
-    assert get_type('ါ') == "Dependent_vowel_signs"
-    assert get_type('ံ') == "Various_signs"
-    assert get_type('၎') == "Various_SIGNS"
-    assert get_type('်') == "Virama_and_killer"
-    assert get_type('ျ') == "Dependent_consonant_signs"
-    assert get_type('။') == "Punctuation"
-    assert get_type('ဤ') == "custom_standalones"
+def test_get_constant_type():
+    assert get_constant_type('က') == Constants.CONSONANTS_KEY
+    assert get_constant_type('အ') == Constants.INDEPENDENT_VOWELS_KEY
+    assert get_constant_type('ါ') == Constants.DEPENDENT_VOWEL_SIGNS_KEY
+    assert get_constant_type('ံ') == Constants.VARIOUS_SIGNS_KEY
+    assert get_constant_type('၎') == Constants.VARIOUS_SIGN_KEY
+    assert get_constant_type('်') == Constants.VIRAMA_AND_KILLER_KEY
+    assert get_constant_type('ျ') == Constants.DEPENDENT_CONSONANT_SIGNS_KEY
+    assert get_constant_type('။') == Constants.PUNCTUATION_KEY
+    assert get_constant_type('ဤ') == Constants.CUSTOM_STANDALONES_KEY
